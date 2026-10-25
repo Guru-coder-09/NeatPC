@@ -57,7 +57,26 @@ NeatPC organizes clutter into an intuitive, shallow directory structure:
 
 ## 🚀 Quickstart & Usage
 
-### 1. Installation
+### 📦 Option A: Download Standalone Executable (No Python Required!)
+For most Windows users, no installation or Python runtime is required:
+1. Download **`NeatPC.exe`** directly from the **[Latest GitHub Releases](https://github.com/Guru-coder-09/NeatPC/releases/latest)**.
+2. Double-click `NeatPC.exe` for the interactive menu, or run it via PowerShell / Command Prompt:
+   ```powershell
+   # Preview changes without moving any files (Simulation Mode)
+   .\NeatPC.exe --desktop --sim
+   .\NeatPC.exe --downloads --sim
+
+   # Start live background watcher daemon
+   .\NeatPC.exe --watch downloads
+
+   # Organize Desktop or Downloads
+   .\NeatPC.exe --desktop
+   .\NeatPC.exe --downloads
+   ```
+
+---
+
+### 🐍 Option B: Run from Source (Python 3.9+)
 
 ```bash
 git clone https://github.com/Guru-coder-09/NeatPC.git
