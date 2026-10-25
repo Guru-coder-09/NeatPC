@@ -2,7 +2,7 @@
 
 [![CI Test Suite](https://github.com/Guru-coder-09/NeatPC/actions/workflows/ci.yml/badge.svg)](https://github.com/Guru-coder-09/NeatPC/actions/workflows/ci.yml)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
-[![Tests: 15 Passed](https://img.shields.io/badge/tests-15%20passed-brightgreen.svg)](https://github.com/Guru-coder-09/NeatPC/actions)
+[![Tests: 19 Passed](https://img.shields.io/badge/tests-19%20passed-brightgreen.svg)](https://github.com/Guru-coder-09/NeatPC/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
@@ -86,8 +86,14 @@ cd NeatPC
 
 # Setup virtual environment
 python -m venv .venv
-.\.venv\Scripts\activate   # Windows
-# source .venv/bin/activate # macOS/Linux
+
+# Activate virtual environment:
+# Windows (PowerShell):
+.venv\Scripts\Activate.ps1
+# Windows (Command Prompt):
+.venv\Scripts\activate.bat
+# macOS / Linux:
+source .venv/bin/activate
 
 # Install dependencies
 pip install -r requirements.txt
