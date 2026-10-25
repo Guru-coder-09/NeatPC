@@ -39,9 +39,9 @@ DOC_WORK_REPORTS = "Documents/Work & Reports"
 DOC_GENERAL = "Documents/General"
 
 # Projects & Code Taxonomy
-PROJ_SOFTWARE = "Projects & Code/Software & Web"
-PROJ_HARDWARE = "Projects & Code/Hardware & Electronics"
-PROJ_HACKATHONS = "Projects & Code/Hackathons & Competitions"
+PROJ_SOFTWARE = "Projects & Code/Software & Scripts"
+PROJ_HARDWARE = "Projects & Code/Hardware & Embedded"
+PROJ_PROPOSALS = "Projects & Code/Specs & Proposals"
 
 # Presentations & Spreadsheets
 SYS_PRESENTATIONS = "Presentations"
@@ -206,11 +206,11 @@ def analyze_file_item(item: FileItem) -> Tuple[str, str]:
         or "has successfully completed" in combined
         or "certificate of participation" in combined
     ):
-        return DOC_CAREER_CERTS, "Course or hackathon achievement certificate"
+        return DOC_CAREER_CERTS, "Course or training achievement certificate"
 
     # --- CAREER: PORTFOLIOS & EXTRACURRICULAR ---
-    if any(w in combined for w in ["portfolio", "aiesec", "summit", "sponsorship outreach", "delegates"]):
-        return DOC_CAREER_PORTFOLIOS, "Professional portfolio / extracurricular document"
+    if any(w in combined for w in ["portfolio", "summit", "sponsorship outreach", "delegates"]):
+        return DOC_CAREER_PORTFOLIOS, "Professional portfolio / presentation document"
 
     # --- LEGAL: COURT FILINGS, TRIBUNAL & ORDERS ---
     if (
@@ -290,9 +290,9 @@ def analyze_file_item(item: FileItem) -> Tuple[str, str]:
     if any(w in lower_name for w in ["roll nos list", "timetable", "time table", "subjects", "iddmp"]):
         return DOC_ACAD_SCHEDULES, "Class schedule or student roll number roster"
 
-    # --- PROJECTS: HACKATHONS & COMPETITIONS ---
-    if any(w in lower_name for w in ["sih", "hackathon", "ecosync", "hexavox", "problem statement", "pitch deck", "ideation"]):
-        return PROJ_HACKATHONS, "Hackathon concept proposal or competition entry"
+    # --- PROJECTS: SPECS, PROPOSALS & CONCEPTS ---
+    if any(w in lower_name for w in ["proposal", "pitch deck", "concept deck", "ideation", "spec", "problem statement"]):
+        return PROJ_PROPOSALS, "Project concept proposal or pitch deck"
 
     # --- WORK: REPORTS & SPECIFICATIONS ---
     if (
