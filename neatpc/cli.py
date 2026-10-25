@@ -281,7 +281,7 @@ def run_organize(
     console.print("\n[bold cyan]Tip:[/bold cyan] To revert anytime, run: [bold white]python main.py --undo[/bold white]\n")
 
 
-def run_shortcuts_only(target_dir: Path):
+def run_shortcuts_only(target_dir: Path, dry_run: bool = False, auto_approve: bool = False):
     """Organizes desktop shortcuts (.lnk and .url) without touching any files."""
     console.print(f"\n[bold green]🔗 Scanning Application Shortcuts in:[/bold green] [cyan]{target_dir}[/cyan] ...")
     items = [FileItem(p) for p in list(target_dir.glob("*.lnk")) + list(target_dir.glob("*.url"))]
@@ -295,33 +295,38 @@ def run_shortcuts_only(target_dir: Path):
     plan = organizer.build_plan(items, classifications)
 
     display_plan_table(plan, target_dir)
-    confirm = Confirm.ask(f"[bold green]Move {len(plan)} shortcuts into organized categories?[/bold green]", default=True)
+
+    if dry_run:
+        console.print("[bold yellow]🔍 Simulation mode (--sim): No shortcuts were moved.[/bold yellow]\n")
+        return
+
+    confirm = auto_approve or Confirm.ask(f"[bold green]Move {len(plan)} shortcuts into organized categories?[/bold green]", default=True)
     if confirm:
         with console.status("[bold green]Organizing shortcuts...[/bold green]"):
             result = organizer.execute_plan(plan)
         console.print(f"\n[bold green]✅ Organized {result['moved_count']} shortcuts![/bold green]\n")
 
 
-def run_documents_only(target_dir: Path):
+def run_documents_only(target_dir: Path, use_ai: bool = True, dry_run: bool = False, auto_approve: bool = False):
     """Organizes only document files into structured universal subcategories."""
     console.print(f"\n[bold cyan]📄 Scanning Documents in:[/bold cyan] [cyan]{target_dir}[/cyan] ...")
-    run_organize(target_dir, include_shortcuts=False, category_filter="Documents")
+    run_organize(target_dir, use_ai=use_ai, dry_run=dry_run, auto_approve=auto_approve, include_shortcuts=False, category_filter="Documents")
 
 
-def run_projects_only(target_dir: Path):
+def run_projects_only(target_dir: Path, dry_run: bool = False, auto_approve: bool = False):
     """Organizes only source code, project repos, and engineering files."""
     console.print(f"\n[bold cyan]💻 Scanning Projects & Code in:[/bold cyan] [cyan]{target_dir}[/cyan] ...")
-    run_organize(target_dir, include_shortcuts=False, category_filter="Projects")
+    run_organize(target_dir, use_ai=False, dry_run=dry_run, auto_approve=auto_approve, include_shortcuts=False, category_filter="Projects")
 
 
-def run_spreadsheets_presentations(target_dir: Path):
+def run_spreadsheets_presentations(target_dir: Path, dry_run: bool = False, auto_approve: bool = False):
     """Organizes presentations (.pptx) and spreadsheets (.xlsx, .csv)."""
     console.print(f"\n[bold cyan]📊 Scanning Presentations & Spreadsheets in:[/bold cyan] [cyan]{target_dir}[/cyan] ...")
-    run_organize(target_dir, include_shortcuts=False, category_filter="Presentations")
+    run_organize(target_dir, use_ai=False, dry_run=dry_run, auto_approve=auto_approve, include_shortcuts=False, category_filter="Presentations")
 
 
-def run_find_duplicates(target_dir: Path):
-    """Finds and lists duplicate files in a folder with action options."""
+def run_find_duplicates(target_dir: Path, dry_run: bool = False, auto_approve: bool = False):
+    """Finds and lists duplicate files in a folder with action options and dry-run support."""
     console.print(f"\n[bold yellow]🔍 Scanning for duplicates in:[/bold yellow] [cyan]{target_dir}[/cyan] ...")
     items = scan_directory(target_dir, include_shortcuts=False)
     detector = DuplicateDetector()
@@ -347,32 +352,53 @@ def run_find_duplicates(target_dir: Path):
     console.print(table)
     console.print(f"\n[bold yellow]Found {len(dups)} duplicate copies.[/bold yellow]")
 
-    action = Prompt.ask(
-        "What would you like to do with these duplicates?",
-        choices=["quarantine", "preview", "cancel"],
-        default="quarantine"
-    )
-    if action == "quarantine":
-        organizer = Organizer(target_dir)
-        plan = []
-        for path_str, info in dups.items():
-            src = Path(path_str)
-            dest = target_dir / "_Duplicates" / src.name
-            plan.append(OrganizationPlanItem(
-                source=src,
-                destination=dest,
-                category="_Duplicates",
-                reason=f"Duplicate of {info.get('original_name')}",
-                is_duplicate=True,
-                original_file_match=info.get("original_name")
-            ))
+    organizer = Organizer(target_dir)
+    plan = []
+    for path_str, info in dups.items():
+        src = Path(path_str)
+        dest = target_dir / "_Duplicates" / src.name
+        plan.append(OrganizationPlanItem(
+            source=src,
+            destination=dest,
+            category="_Duplicates",
+            reason=f"Duplicate of {info.get('original_name')}",
+            is_duplicate=True,
+            original_file_match=info.get("original_name")
+        ))
+
+    if dry_run:
+        display_plan_table(plan, target_dir)
+        console.print("[bold yellow]🔍 Simulation mode (--sim): No duplicate files were moved or quarantined.[/bold yellow]\n")
+        return
+
+    if auto_approve:
+        action = "quarantine"
+    else:
+        action = Prompt.ask(
+            "What would you like to do with these duplicates?",
+            choices=["quarantine", "preview", "cancel"],
+            default="quarantine"
+        )
+
+    if action == "preview":
+        display_plan_table(plan, target_dir)
+        action = Prompt.ask(
+            "Confirm quarantine of these duplicate copies?",
+            choices=["yes", "cancel"],
+            default="yes"
+        )
+        if action != "yes":
+            console.print("[yellow]Quarantine canceled.[/yellow]\n")
+            return
+
+    if action in ["quarantine", "yes"]:
         with console.status("[bold green]Quarantining duplicates...[/bold green]"):
             res = organizer.execute_plan(plan)
         console.print(f"[bold green]✅ Safely quarantined {res['moved_count']} duplicates to '_Duplicates/' folder![/bold green]\n")
 
 
-def run_smart_renamer_station(target_dir: Path):
-    """Scans and renames cryptic/generic documents with preview."""
+def run_smart_renamer_station(target_dir: Path, use_ai: bool = True, dry_run: bool = False, auto_approve: bool = False):
+    """Scans and renames cryptic/generic documents with preview and simulation support."""
     console.print(f"\n[bold cyan]✨ Scanning for cryptic & poorly named documents in:[/bold cyan] [cyan]{target_dir}[/cyan] ...")
     items = scan_directory(target_dir, include_shortcuts=False)
     cryptic = [
@@ -386,7 +412,7 @@ def run_smart_renamer_station(target_dir: Path):
         console.print("[green]✨ All documents already have clear, readable names![/green]\n")
         return
 
-    classifier = Classifier(use_ai=True)
+    classifier = Classifier(use_ai=use_ai)
     renamer = SmartRenamer(llm_client=classifier.llm)
 
     with console.status("[bold cyan]Analyzing contents and generating smart names...[/bold cyan]"):
@@ -411,7 +437,12 @@ def run_smart_renamer_station(target_dir: Path):
         table.add_row(Path(path_str).name, new_name)
 
     console.print(table)
-    confirm = Confirm.ask(f"[bold green]Apply renaming to these {len(rename_map)} files?[/bold green]", default=True)
+
+    if dry_run:
+        console.print("[bold yellow]🔍 Simulation mode (--sim): No files were renamed.[/bold yellow]\n")
+        return
+
+    confirm = auto_approve or Confirm.ask(f"[bold green]Apply renaming to these {len(rename_map)} files?[/bold green]", default=True)
     if confirm:
         organizer = Organizer(target_dir)
         plan = []
@@ -432,37 +463,42 @@ def run_smart_renamer_station(target_dir: Path):
         console.print(f"[bold green]✅ Successfully renamed {res['moved_count']} files![/bold green]\n")
 
 
-def run_undo():
-    """Rolls back the most recent organization session."""
+def run_undo(session_id: Optional[str] = None, auto_approve: bool = False):
+    """Rolls back the most recent or specified organization session with error reporting."""
     organizer = Organizer(DESKTOP_DIR)
-    last_session = organizer.journal.get_last_session()
+    if session_id:
+        target_session = organizer.journal.get_session(session_id)
+    else:
+        target_session = organizer.journal.get_last_session()
 
-    if not last_session:
+    if not target_session:
         console.print("\n[yellow]⚠️ No active organization session found to undo.[/yellow]\n")
         return
 
     console.print(Panel(
-        f"[bold]Session ID:[/bold] {last_session['session_id']}\n"
-        f"[bold]Date:[/bold] {last_session['timestamp']}\n"
-        f"[bold]Root Folder:[/bold] {last_session['target_dir']}\n"
-        f"[bold]Files Moved / Renamed:[/bold] {last_session['move_count']}",
+        f"[bold]Session ID:[/bold] {target_session['session_id']}\n"
+        f"[bold]Date:[/bold] {target_session['timestamp']}\n"
+        f"[bold]Root Folder:[/bold] {target_session['target_dir']}\n"
+        f"[bold]Files Moved / Renamed:[/bold] {target_session['move_count']}",
         title="⏪ Session to Rollback",
         box=box.ROUNDED
     ))
 
-    confirm = Confirm.ask("[bold red]Are you sure you want to restore all files to original locations and names?[/bold red]", default=True)
+    confirm = auto_approve or Confirm.ask("[bold red]Are you sure you want to restore all files to original locations and names?[/bold red]", default=True)
     if not confirm:
         console.print("[yellow]Undo canceled.[/yellow]\n")
         return
 
     with console.status("[bold yellow]Restoring files to original names and locations...[/bold yellow]"):
-        result = organizer.rollback_session()
+        result = organizer.rollback_session(session_id=target_session['session_id'])
 
     if result["success"]:
         console.print(f"\n[bold green]✅ Rollback successful![/bold green]")
         console.print(f"Restored: [bold white]{result['restored_count']}[/bold white] files.")
         if result['failed_count'] > 0:
-            console.print(f"[yellow]Failed to restore: {result['failed_count']} files.[/yellow]")
+            console.print(f"[bold red]⚠️ Could not restore {result['failed_count']} files:[/bold red]")
+            for f_item in result.get("failed_items", []):
+                console.print(f"  • [yellow]{f_item.get('destination')}[/yellow]: [dim]{f_item.get('reason')}[/dim]")
         console.print(f"Cleaned up: [dim]{result['cleaned_dirs']} empty folders.[/dim]\n")
     else:
         console.print(f"[red]❌ Rollback failed: {result.get('message')}[/red]\n")

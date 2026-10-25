@@ -2,6 +2,7 @@
 
 Classifies files into clean, logical, and universally applicable categories
 for any computer in the world using fast heuristics and Unified LLMs (Gemini / Ollama).
+Includes privacy-first safeguards to prevent sensitive documents from leaving the device.
 """
 
 import os
@@ -13,6 +14,20 @@ from .config import EXTENSION_MAPPINGS, SHORTCUT_CATEGORIES
 from .scanner import FileItem
 from .analyzer import analyze_file_item, CAT_SHORTCUTS, CAT_DOCUMENTS_GENERAL, DOC_GENERAL
 from .llm import UnifiedLLMClient
+
+# Sensitive keywords that must NEVER have content sent to external cloud APIs
+SENSITIVE_KEYWORDS = {
+    "password", "passwd", "secret", "credential", "api_key", "apikey",
+    "private_key", "seed_phrase", "recovery_phrase", "token", "ssn",
+    "social_security", "credit_card", "cvv", "bank_statement", "tax_return",
+    "w2", "1099", "confidential", "kyc"
+}
+
+
+def is_sensitive_file(item: FileItem) -> bool:
+    """Detect if a file name or path suggests confidential/sensitive private data."""
+    name_lower = item.name.lower()
+    return any(kw in name_lower for kw in SENSITIVE_KEYWORDS)
 
 
 class Classifier:
@@ -41,6 +56,11 @@ class Classifier:
         if item.is_shortcut:
             return self.classify_shortcut(item), "Application shortcut"
 
+        if is_sensitive_file(item):
+            # Route sensitive documents to safe folder without external API calls
+            if item.suffix in [".pdf", ".docx", ".doc", ".txt", ".csv"]:
+                return "Documents/Finance & Invoices/Confidential & Personal", "Confidential document (protected by local privacy filter)"
+
         return analyze_file_item(item)
 
     def classify_batch(self, items: List[FileItem]) -> Dict[str, Tuple[str, str]]:
@@ -64,6 +84,7 @@ class Classifier:
                 and not item.is_dir 
                 and not item.is_shortcut
                 and item.suffix in [".pdf", ".docx", ".doc", ".txt", ".csv"]
+                and not is_sensitive_file(item)  # Privacy safeguard!
             ):
                 if cat == DOC_GENERAL:
                     ai_candidates.append(item)
@@ -98,30 +119,43 @@ Examine each document's filename and content snippet, and categorize it into the
 - "Documents/Academic & Education/Courses & Syllabi" (course guides, university syllabi, curriculum)
 - "Documents/Academic & Education/Lab Records & Handbooks" (lab manuals, practical handbooks)
 - "Documents/Career & Resumes/Resumes & CVs" (resumes, CVs, portfolios, job applications)
-- "Documents/Career & Resumes/Certificates & Awards" (certificates, awards, diplomas)
-- "Documents/Work & Reports" (project briefs, meeting minutes, technical specifications)
-- "Documents/General" (miscellaneous documents)
+- "Documents/Career & Resumes/Job Descriptions" (hiring specs, job roles, interview guides)
+- "Documents/Technical & Engineering/Specifications & Manuals" (architecture docs, engineering datasheets)
+- "Documents/Work & Reports/Meeting Notes" (meeting minutes, action items)
+- "Documents/General" (if ambiguous or general)
 
-Files to classify:
+Documents:
 {json.dumps(batch_data, indent=2)}
 
-Respond with a JSON array where each object has:
-- "id": integer matching input id
-- "category": chosen category path
-- "reason": concise explanation in 5-8 words
+Respond with a JSON object with a single key "classifications" containing an array of objects:
+[
+  {{"id": 0, "category": "Documents/Legal & Contracts/Court Filings & Orders", "reason": "Supreme court case ruling text"}}
+]
+Respond ONLY with the JSON object.
 """
-
-        parsed = self.llm.generate_json(prompt)
-        if not parsed or not isinstance(parsed, list):
+        response_text = self.llm.generate(prompt)
+        if not response_text:
             return {}
 
-        ai_map = {}
-        for entry in parsed:
-            idx = entry.get("id")
-            cat = entry.get("category", DOC_GENERAL)
-            reason = entry.get("reason", "Semantic content analysis")
-            if idx is not None and 0 <= idx < len(items):
-                item = items[idx]
-                ai_map[str(item.path)] = (cat, reason)
+        try:
+            clean_json = response_text.strip()
+            if "```json" in clean_json:
+                clean_json = clean_json.split("```json")[1].split("```")[0].strip()
+            elif "```" in clean_json:
+                clean_json = clean_json.split("```")[1].split("```")[0].strip()
 
-        return ai_map
+            parsed = json.loads(clean_json)
+            classifications = parsed.get("classifications", [])
+            mapping: Dict[str, Tuple[str, str]] = {}
+
+            for c in classifications:
+                cid = c.get("id")
+                if cid is not None and 0 <= cid < len(items):
+                    item = items[cid]
+                    cat = c.get("category", DOC_GENERAL)
+                    reason = c.get("reason", "AI content match")
+                    mapping[str(item.path)] = (cat, reason)
+
+            return mapping
+        except Exception:
+            return {}

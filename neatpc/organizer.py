@@ -29,16 +29,16 @@ class OrganizationPlanItem:
         original_name: Optional[str] = None,
         new_name: Optional[str] = None
     ):
-        self.source = source
-        self.destination = destination
+        self.source = Path(source)
+        self.destination = Path(destination)
         self.category = category
         self.reason = reason
         self.is_collision = is_collision
         self.is_duplicate = is_duplicate
         self.original_file_match = original_file_match
         self.is_renamed = is_renamed
-        self.original_name = original_name or source.name
-        self.new_name = new_name or destination.name
+        self.original_name = original_name or self.source.name
+        self.new_name = new_name or self.destination.name
 
 
 def get_collision_free_path(dest_folder: Path, filename: str) -> tuple[Path, bool]:
@@ -47,6 +47,7 @@ def get_collision_free_path(dest_folder: Path, filename: str) -> tuple[Path, boo
     If 'report.pdf' exists, generates 'report (1).pdf', etc.
     Returns: (safe_path, had_collision)
     """
+    dest_folder = Path(dest_folder)
     target = dest_folder / filename
     if not target.exists():
         return target, False
@@ -67,7 +68,7 @@ class Organizer:
     """Plans, executes, and rolls back file organization."""
 
     def __init__(self, target_dir: Path, journal: Optional[Journal] = None):
-        self.target_dir = target_dir.resolve()
+        self.target_dir = Path(target_dir).resolve()
         self.journal = journal or Journal()
 
     def build_plan(
@@ -118,7 +119,7 @@ class Organizer:
             safe_dest_path, had_collision = get_collision_free_path(dest_dir, filename_to_use)
 
             # Skip if file is already at destination with the same name
-            if item.path == safe_dest_path:
+            if item.path.resolve() == safe_dest_path.resolve():
                 continue
 
             plan.append(OrganizationPlanItem(
@@ -141,22 +142,32 @@ class Organizer:
         plan: List[OrganizationPlanItem]
     ) -> Dict[str, Any]:
         """
-        Safely executes the plan with audit logging.
-        Returns execution statistics.
+        Safely executes the plan with transactional audit logging.
+        If an individual move fails, previous moves remain recorded in the journal.
         """
         session_id = f"session_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:6]}"
-        moves_logged: List[Dict[str, str]] = []
+        moves_logged: List[Dict[str, Any]] = []
         created_dirs: set[str] = set()
         errors: List[Dict[str, str]] = []
 
         for item in plan:
+            if not item.source.exists():
+                errors.append({
+                    "file": item.source.name,
+                    "error": f"Source file does not exist: {item.source}"
+                })
+                continue
+
             dest_folder = item.destination.parent
             if not dest_folder.exists():
                 try:
                     dest_folder.mkdir(parents=True, exist_ok=True)
                     created_dirs.add(str(dest_folder))
                 except Exception as e:
-                    errors.append({"file": item.source.name, "error": f"Failed to create folder {dest_folder}: {e}"})
+                    errors.append({
+                        "file": item.source.name,
+                        "error": f"Failed to create folder {dest_folder}: {e}"
+                    })
                     continue
 
             try:
@@ -173,13 +184,14 @@ class Organizer:
             except Exception as e:
                 errors.append({"file": item.source.name, "error": str(e)})
 
-        # Log session to journal
-        self.journal.record_session(
-            session_id=session_id,
-            target_dir=str(self.target_dir),
-            moves=moves_logged,
-            created_dirs=list(created_dirs)
-        )
+        # Log session to journal even if partially executed
+        if moves_logged:
+            self.journal.record_session(
+                session_id=session_id,
+                target_dir=str(self.target_dir),
+                moves=moves_logged,
+                created_dirs=list(created_dirs)
+            )
 
         return {
             "session_id": session_id,
@@ -190,36 +202,67 @@ class Organizer:
     def rollback_session(self, session_id: Optional[str] = None) -> Dict[str, Any]:
         """
         Rollback moves from the last or specified session.
-        Restores files to exact original locations with original names and removes empty folders.
+        Restores files to exact original locations with original names.
+        Handles missing files, name collisions on restoration, and removes created empty folders.
         """
         if session_id:
-            sessions = [s for s in self.journal.list_sessions() if s.get("session_id") == session_id]
-            session = sessions[0] if sessions else None
+            session = self.journal.get_session(session_id)
         else:
             session = self.journal.get_last_session()
 
         if not session:
-            return {"success": False, "message": "No active session available to undo."}
+            return {
+                "success": False,
+                "message": "No active session available to undo.",
+                "restored_count": 0,
+                "failed_count": 0,
+                "restored_items": [],
+                "failed_items": []
+            }
 
         sid = session["session_id"]
         moves = session.get("moves", [])
-        restored = 0
-        failed = 0
+        restored_items: List[Dict[str, str]] = []
+        failed_items: List[Dict[str, str]] = []
 
         # Reverse moves: from destination back to original source path
         for move in reversed(moves):
             src = Path(move["source"])
             dest = Path(move["destination"])
 
-            if dest.exists():
-                try:
-                    src.parent.mkdir(parents=True, exist_ok=True)
+            if not dest.exists():
+                failed_items.append({
+                    "destination": str(dest),
+                    "target_source": str(src),
+                    "reason": "Destination file no longer exists (deleted or moved externally)"
+                })
+                continue
+
+            try:
+                src.parent.mkdir(parents=True, exist_ok=True)
+                # Check if target source path is already occupied
+                if src.exists() and src.resolve() != dest.resolve():
+                    # Avoid overwrite; generate collision-free restored path
+                    safe_restore_path, _ = get_collision_free_path(src.parent, src.name)
+                    shutil.move(str(dest), str(safe_restore_path))
+                    restored_items.append({
+                        "from": str(dest),
+                        "to": str(safe_restore_path),
+                        "note": "Restored with safe suffix because original path was occupied"
+                    })
+                else:
                     shutil.move(str(dest), str(src))
-                    restored += 1
-                except Exception:
-                    failed += 1
-            else:
-                failed += 1
+                    restored_items.append({
+                        "from": str(dest),
+                        "to": str(src),
+                        "note": "Restored cleanly"
+                    })
+            except Exception as e:
+                failed_items.append({
+                    "destination": str(dest),
+                    "target_source": str(src),
+                    "reason": f"Permission or OS error: {e}"
+                })
 
         # Clean up empty directories that were created during the session
         created_dirs = session.get("created_dirs", [])
@@ -239,7 +282,9 @@ class Organizer:
         return {
             "success": True,
             "session_id": sid,
-            "restored_count": restored,
-            "failed_count": failed,
+            "restored_count": len(restored_items),
+            "failed_count": len(failed_items),
+            "restored_items": restored_items,
+            "failed_items": failed_items,
             "cleaned_dirs": cleaned_dirs
         }

@@ -1,6 +1,8 @@
 # ✨ NeatPC: Intelligent Desktop & File Automation Workstation
 
+[![CI Test Suite](https://github.com/Guru-coder-09/NeatPC/actions/workflows/ci.yml/badge.svg)](https://github.com/Guru-coder-09/NeatPC/actions/workflows/ci.yml)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
+[![Tests: 15 Passed](https://img.shields.io/badge/tests-15%20passed-brightgreen.svg)](https://github.com/Guru-coder-09/NeatPC/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
@@ -163,12 +165,43 @@ custom_rules:
 
 ---
 
-## 🛡️ Safety & Data Protection Principles
+## 🛡️ Safety, Privacy & Data Protection Principles
 
-1. **Non-Destructive by Default**: NeatPC never silently deletes files. Duplicate copies are quarantined in `_Duplicates/` for review.
-2. **Collision-Proof Renaming**: If a file with the same name exists at destination, NeatPC generates `file (1).ext` rather than overwriting.
-3. **Protected System Files**: System files (`desktop.ini`, `Thumbs.db`, `.git`, `.venv`, system DLLs) are strictly protected.
-4. **Complete Rollback Capability**: Every operation is logged in `~/.neatpc/history.json` and reversible with a single command.
+1. **🔒 Privacy-First by Default**: 
+   - Files are classified locally using fast heuristic rules and regex without internet access.
+   - **Sensitive Document Filter**: Documents matching confidential patterns (passwords, bank statements, tax returns, SSNs, credentials) are **strictly filtered** and never transmitted to external cloud APIs.
+   - For 100% air-gapped offline AI, use `--no-ai` or connect to Local Ollama (`llama3.2`).
+2. **⚠️ Non-Destructive Deduplication**: NeatPC never silently deletes files. Duplicate copies are quarantined in `_Duplicates/` for review.
+3. **🛡️ Collision-Proof Moves & Undos**: If a file with the same name exists at destination (or at original path during rollback), NeatPC generates `file (1).ext` rather than overwriting.
+4. **⏪ 100% Reversible Rollback Engine**: Every operation records a transactional journal in `~/.neatpc/history.json`. Run `python main.py --undo` anytime to restore files and prune empty created folders.
+5. **🔍 Uniform Simulation Mode (`--sim` / `--dry-run`)**: Works across all workflows (`--desktop`, `--downloads`, `--duplicates`, `--rename`, `--shortcuts`) to preview exact proposed moves before writing a single byte.
+
+---
+
+## 🧪 Automated Test Suite & CI
+
+NeatPC includes a 15-test automated test suite executed on every commit across **Ubuntu & Windows** using GitHub Actions:
+
+```bash
+# Run test suite
+pytest -v
+```
+
+Tests verify:
+- Safe collision handling (`get_collision_free_path`) across single and multiple name conflicts.
+- SHA-256 content deduplication and master copy retention.
+- Reversible transaction rollback and empty folder cleanup.
+- Safe rollback handling when source paths are re-occupied or destination files were deleted externally.
+- Simulation mode isolation across `--duplicates`, `--rename`, and `--shortcuts`.
+- Privacy filters protecting sensitive/confidential documents.
+
+---
+
+## 💻 Platform Compatibility & Limits
+
+- **Windows 10 / 11**: Fully supported via both `NeatPC.exe` standalone binary and Python CLI. Handles OneDrive synced desktops (`OneDrive\Desktop`) and local desktops automatically.
+- **macOS & Linux**: Fully supported via Python 3.9+ CLI (`python main.py`).
+- **Known Limits**: System files (`desktop.ini`, `Thumbs.db`, `.git`, `.venv`, system DLLs) and active sync locks are strictly protected and intentionally skipped.
 
 ---
 

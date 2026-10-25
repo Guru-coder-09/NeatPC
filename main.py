@@ -63,9 +63,11 @@ def main():
         start_watcher(target)
         return
 
+    use_ai = not args.no_ai
+
     # 2. Undo & History
     if args.undo:
-        run_undo()
+        run_undo(auto_approve=args.yes)
         return
 
     if args.history:
@@ -74,32 +76,30 @@ def main():
 
     target = Path(args.path.strip('"')) if args.path else None
 
-    # 3. Targeted Tools
+    # 3. Targeted Tools with Consistent Dry-Run (--sim) and Auto-Confirm (-y) Support
     if args.shortcuts:
-        run_shortcuts_only(target or DESKTOP_DIR)
+        run_shortcuts_only(target or DESKTOP_DIR, dry_run=args.dry_run, auto_approve=args.yes)
         return
 
     if args.documents:
-        run_documents_only(target or DESKTOP_DIR)
+        run_documents_only(target or DESKTOP_DIR, use_ai=use_ai, dry_run=args.dry_run, auto_approve=args.yes)
         return
 
     if args.code:
-        run_projects_only(target or DESKTOP_DIR)
+        run_projects_only(target or DESKTOP_DIR, dry_run=args.dry_run, auto_approve=args.yes)
         return
 
     if args.spreadsheets:
-        run_spreadsheets_presentations(target or DESKTOP_DIR)
+        run_spreadsheets_presentations(target or DESKTOP_DIR, dry_run=args.dry_run, auto_approve=args.yes)
         return
 
     if args.duplicates:
-        run_find_duplicates(target or DOWNLOADS_DIR)
+        run_find_duplicates(target or DOWNLOADS_DIR, dry_run=args.dry_run, auto_approve=args.yes)
         return
 
     if args.rename:
-        run_smart_renamer_station(target or DESKTOP_DIR)
+        run_smart_renamer_station(target or DESKTOP_DIR, use_ai=use_ai, dry_run=args.dry_run, auto_approve=args.yes)
         return
-
-    use_ai = not args.no_ai
 
     # 4. Standard Workflows
     if args.desktop:

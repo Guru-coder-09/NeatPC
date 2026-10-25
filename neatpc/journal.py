@@ -9,7 +9,7 @@ from .config import HISTORY_DB_PATH
 
 
 class Journal:
-    """Manages recording and reading organization transaction history."""
+    """Manages recording, reading, and auditing organization transaction history."""
 
     def __init__(self, db_path: Path = HISTORY_DB_PATH):
         self.db_path = db_path
@@ -21,24 +21,30 @@ class Journal:
             self._write_data([])
 
     def _read_data(self) -> List[Dict[str, Any]]:
+        if not self.db_path.exists():
+            return []
         try:
             with open(self.db_path, "r", encoding="utf-8") as f:
-                return json.load(f)
+                data = json.load(f)
+                if isinstance(data, list):
+                    return [s for s in data if isinstance(s, dict) and "session_id" in s]
+                return []
         except (json.JSONDecodeError, OSError):
             return []
 
     def _write_data(self, data: List[Dict[str, Any]]) -> None:
+        self.db_path.parent.mkdir(parents=True, exist_ok=True)
         with open(self.db_path, "w", encoding="utf-8") as f:
-            json.dump(data, f, indent=2)
+            json.dump(data, f, indent=2, ensure_ascii=False)
 
     def record_session(
         self,
         session_id: str,
         target_dir: str,
-        moves: List[Dict[str, str]],
+        moves: List[Dict[str, Any]],
         created_dirs: List[str]
     ) -> None:
-        """Record a completed file organization session."""
+        """Record a completed file organization session with transaction integrity."""
         sessions = self._read_data()
         session_record = {
             "session_id": session_id,
@@ -52,13 +58,24 @@ class Journal:
         sessions.append(session_record)
         self._write_data(sessions)
 
+    def get_session(self, session_id: str) -> Optional[Dict[str, Any]]:
+        """Look up a specific session by its unique session_id."""
+        for s in self._read_data():
+            if s.get("session_id") == session_id:
+                return s
+        return None
+
     def get_last_session(self) -> Optional[Dict[str, Any]]:
-        """Return the most recent active session that can be undone."""
+        """Return the most recent active session that has not yet been rolled back."""
         sessions = self._read_data()
         for s in reversed(sessions):
             if s.get("status") == "completed":
                 return s
         return None
+
+    def get_active_sessions(self) -> List[Dict[str, Any]]:
+        """Return all sessions that can be rolled back."""
+        return [s for s in self._read_data() if s.get("status") == "completed"]
 
     def mark_session_undone(self, session_id: str) -> None:
         """Mark a session as undone after rollback."""
@@ -70,5 +87,5 @@ class Journal:
         self._write_data(sessions)
 
     def list_sessions(self) -> List[Dict[str, Any]]:
-        """List all recorded sessions."""
+        """List all recorded sessions in chronological order."""
         return self._read_data()
