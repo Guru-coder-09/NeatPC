@@ -30,29 +30,29 @@
 
 NeatPC organizes clutter into an intuitive, shallow directory structure:
 
-```
-📁 Organized Root (Desktop, Downloads, or Custom Folder)
-├── 📁 _Duplicates/                (Quarantined identical duplicate copies)
-├── 📁 Documents/
-│   ├── 📁 Legal & Contracts/      (Court Filings, Affidavits, Petitions, Regulatory Notices, MOUs)
-│   ├── 📁 Finance & Invoices/     (Receipts, Commercial Bills, Tax Filings, Bank Statements)
-│   ├── 📁 Academic & College/     (Course Guides, Syllabi, Lab Handbooks, Timetables, Rosters)
-│   ├── 📁 Career & Resumes/       (Professional Resumes, CVs, Portfolios, Summit Proposals)
-│   ├── 📁 Work & Reports/         (Meeting Minutes, Technical Specs, Project Briefs)
-│   └── 📁 General/                (General documents)
-├── 📁 Projects & Code/
-│   ├── 📁 Software & Web/         (Web apps, scripts, Python, JS/TS, Java, repos)
-│   ├── 📁 Hardware & Electronics/ (Arduino sketches, PCB gerber/schematic files)
-│   └── 📁 Hackathons & SIH/       (Hackathon concept decks, problem submissions)
-├── 📁 Presentations/              (PowerPoint decks, .pptx, .ppt, .key)
-├── 📁 Spreadsheets/               (Excel tables, CSV datasets, .xlsx, .csv)
-├── 📁 Shortcuts/                  (Development, Browsers, Creative, AI, Gaming, Utilities)
-├── 📁 Media/
-│   ├── 📁 Pictures/YYYY/MM/       (Chronological photos sorted via camera EXIF tags)
-│   ├── 📁 Screenshots/            (Screen captures)
-│   └── 📁 Videos/                 (Recordings, tutorials, MP4, MKV)
-├── 📁 Installers/                 (Software setups, .exe, .msi, .iso)
-└── 📁 Archives/                   (Zip packages, .zip, .rar, .7z)
+```text
+Organized Root/ (Desktop, Downloads, or Custom Folder)
+├── _Duplicates/                 (Quarantined identical duplicate copies)
+├── Documents/
+│   ├── Legal & Contracts/       (Court Filings, Affidavits, Petitions, Regulatory Notices, MOUs)
+│   ├── Finance & Invoices/      (Receipts, Commercial Bills, Tax Filings, Bank Statements)
+│   ├── Academic & College/      (Course Guides, Syllabi, Lab Handbooks, Timetables, Rosters)
+│   ├── Career & Resumes/        (Professional Resumes, CVs, Portfolios, Summit Proposals)
+│   ├── Work & Reports/          (Meeting Minutes, Technical Specs, Project Briefs)
+│   └── General/                 (General documents)
+├── Projects & Code/
+│   ├── Software & Web/          (Web apps, scripts, Python, JS/TS, Java, repos)
+│   ├── Hardware & Electronics/  (Arduino sketches, PCB gerber/schematic files)
+│   └── Hackathons & SIH/        (Hackathon concept decks, problem submissions)
+├── Presentations/               (PowerPoint decks, .pptx, .ppt, .key)
+├── Spreadsheets/                (Excel tables, CSV datasets, .xlsx, .csv)
+├── Shortcuts/                   (Development, Browsers, Creative, AI, Gaming, Utilities)
+├── Media/
+│   ├── Pictures/YYYY/MM/        (Chronological photos sorted via camera EXIF tags)
+│   ├── Screenshots/             (Screen captures)
+│   └── Videos/                  (Recordings, tutorials, MP4, MKV)
+├── Installers/                  (Software setups, .exe, .msi, .iso)
+└── Archives/                    (Zip packages, .zip, .rar, .7z)
 ```
 
 ---
