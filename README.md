@@ -4,11 +4,11 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
-**NeatPC** is a high-speed, safety-first desktop and file automation workstation. Inspired by tools like [**`tfeldmann/organize`**](https://github.com/tfeldmann/organize) and [**`midnightdim/declutter`**](https://github.com/midnightdim/declutter), NeatPC elevates file organization by combining **deep content-level inspection (PDF, DOCX, HTML)** with **multi-provider AI (Google Gemini & Local Ollama)**, **cryptographic duplicate quarantine**, **live background watching**, and a **100% reversible undo engine**.
+**NeatPC** is a high-speed, safety-first desktop and file automation workstation. It organizes files and folders by combining **deep content inspection (PDF, DOCX, HTML)** with **multi-provider AI (Google Gemini & Local Ollama)**, **cryptographic duplicate quarantine**, **live background watching**, and a **100% reversible undo engine**.
 
 ---
 
-## 🌟 Key Capabilities & Upgrades
+## 🌟 Core Features
 
 | Feature | Description |
 | :--- | :--- |
@@ -20,25 +20,13 @@
 | **⚙️ User YAML Configuration (`config.yaml`)** | Easily define your own custom rules, keywords, and extension overrides in `~/.neatpc/config.yaml` without editing code. |
 | **🎯 Interactive Action Selection** | When previewing plans, choose between: **[A] Apply All**, **[D] Duplicates Only**, **[R] Renames Only**, or **[S] Specific Category Only**. |
 | **🛡️ 100% Reversible Rollback (Undo)** | Full transaction journal recorded at `~/.neatpc/history.json`. Run `python main.py --undo` anytime to restore files to their original names and locations. |
+| **🔗 Desktop App Suites Organizer** | Automatically cleans up desktop `.lnk` and `.url` shortcuts into functional app suites (Development, Browsers, AI, Media, Games). |
 
 ---
 
-## 🆚 Comparison with Popular GitHub File Organizers
+## 🌐 Clean Universal Taxonomy (Max 2–3 Levels Deep)
 
-| Feature | `tfeldmann/organize` | `midnightdim/declutter` | **✨ NeatPC** |
-| :--- | :--- | :--- | :--- |
-| **Document Content Reading** | ❌ (Regex only) | ❌ (Filename only) | ✅ **Deep PDF / DOCX parsing** |
-| **AI Semantic Understanding** | ❌ None | ❌ None | ✅ **Gemini + Local Ollama** |
-| **1-Click Rollback / Undo** | ❌ (Trash only) | ❌ None | ✅ **Full transaction rollback** |
-| **Duplicate Quarantine & Scoring** | ⚠️ Basic hash filter | ❌ None | ✅ **SHA-256 + Best master selection** |
-| **Desktop Shortcuts (.lnk)** | ❌ None | ❌ None | ✅ **App suites categorization** |
-| **Live Background Watcher** | ✅ Yes (`organize run`) | ⚠️ Basic | ✅ **Yes (`--watch`)** |
-| **Simulation Mode** | ✅ `organize sim` | ❌ None | ✅ **`python main.py --sim`** |
-| **Custom YAML Rules** | ✅ Yes | ❌ GUI only | ✅ **Yes (`~/.neatpc/config.yaml`)** |
-
----
-
-## 🌐 Universal Clean Taxonomy (Max 2–3 Levels Deep)
+NeatPC organizes clutter into an intuitive, shallow directory structure:
 
 ```
 📁 Organized Root (Desktop, Downloads, or Custom Folder)
@@ -72,8 +60,8 @@
 ### 1. Installation
 
 ```bash
-git clone https://github.com/your-username/neatpc.git
-cd neatpc
+git clone https://github.com/Guru-coder-09/NeatPC.git
+cd NeatPC
 
 # Setup virtual environment
 python -m venv .venv
@@ -93,12 +81,12 @@ python main.py
 ### 3. Direct Command Flags
 
 ```bash
-# Simulation mode: Preview changes without moving any files (like 'organize sim')
+# Simulation mode: Preview changes without moving any files
 python main.py --desktop --sim
 python main.py --downloads --sim
 
 # Live background watcher daemon (auto-organize downloads as they finish)
-python main.py --watch ~/Downloads
+python main.py --watch downloads
 
 # Organize Desktop files, folders & app shortcuts
 python main.py --desktop
@@ -153,6 +141,15 @@ custom_rules:
   - keyword: "tax"
     destination: "Documents/Finance/Tax"
 ```
+
+---
+
+## 🛡️ Safety & Data Protection Principles
+
+1. **Non-Destructive by Default**: NeatPC never silently deletes files. Duplicate copies are quarantined in `_Duplicates/` for review.
+2. **Collision-Proof Renaming**: If a file with the same name exists at destination, NeatPC generates `file (1).ext` rather than overwriting.
+3. **Protected System Files**: System files (`desktop.ini`, `Thumbs.db`, `.git`, `.venv`, system DLLs) are strictly protected.
+4. **Complete Rollback Capability**: Every operation is logged in `~/.neatpc/history.json` and reversible with a single command.
 
 ---
 
